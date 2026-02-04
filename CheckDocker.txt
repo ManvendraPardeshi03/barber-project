@@ -1,0 +1,51 @@
+🐳 DOCKER – BARBER PROJECT (RECALL NOTES)
+
+📌 IMPORTANT
+Docker commands ALWAYS run from project root, Backend / frontend folder ke andar mat jao.
+👉 C:\Users\manve\Desktop\Barber Project
+
+▶ START PROJECT (Backend + Frontend)
+    docker-compose up
+
+▶ START with rebuild (after code change / error)
+    docker-compose up --build
+
+⏹ STOP PROJECT
+    docker-compose down
+
+🔍 CHECK RUNNING CONTAINERS
+    docker ps
+    Expected:
+        barberproject-backend-1 → port 5000
+        barberproject-frontend-1 → port 4173
+
+📜 CHECK BACKEND LOGS (IMPORTANT)
+    barberproject-backend-1
+    Should show:
+        Server running on port 5000
+        MongoDB Connected
+
+📜 CHECK FRONTEND LOGS
+    docker logs barberproject-frontend-1
+
+🔄 RESTART CONTAINERS (FAST)
+    docker-compose restart
+
+🧹 CLEAN OLD / USELESS CONTAINERS (ONLY IF CONFUSED)
+    docker stop $(docker ps -aq)
+    docker rm $(docker ps -aq)
+    Then:
+    docker-compose up --build
+
+🧱 BUILD IMAGES ONLY (NO RUN)
+    docker-compose build
+
+❌ REMOVE ALL UNUSED DATA (ADVANCED – CAREFUL)
+    docker system prune -a
+
+🌐 OPEN PROJECT
+    Frontend:
+        http://localhost:4173
+
+    Backend API:
+        http://localhost:5000

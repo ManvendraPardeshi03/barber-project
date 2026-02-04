@@ -1,6 +1,16 @@
-const router = require("express").Router();
-const { bookAppointment } = require("../controllers/appointmentController");
-const { protect } = require("../middleware/authMiddleware");
+const express = require("express");
+const router = express.Router();
+const appointmentController = require("../controllers/appointmentController");
+const { protect, barberOnly } = require("../middleware/authMiddleware");
 
-router.post("/book", protect, bookAppointment);
-module.exports = router;
+// GET available slots
+router.get("/available-slots", appointmentController.getAvailableSlots);
+
+// GET all appointments
+// router.get("/", appointmentController.getMyAppointments);
+router.get("/", protect, barberOnly, appointmentController.getMyAppointments);
+
+// POST booking
+router.post("/book-public", appointmentController.bookAppointment);
+
+module.exports = router; // ✅ correct
