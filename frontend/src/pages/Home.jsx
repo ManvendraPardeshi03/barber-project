@@ -75,7 +75,7 @@ export default function Home() {
                 style={{ cursor: "pointer" }}
               >
                 <img
-                  src={service.image ? getImageUrl(service.image) : haircut}
+                  src={service.image ? getImageUrl(service.image) : "/placeholder.jpg"}
                   alt={service.name}
                 />
                 <h3>{service.name}</h3>
