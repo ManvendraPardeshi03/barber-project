@@ -24,15 +24,20 @@ export default function SlotPicker({ date, totalTime, selectedSlot, setSelectedS
 
         const updatedSlots = res.data.slots.map((slot) => {
           const slotStart = new Date(slot.startTime);
-          const slotEnd = new Date(slot.endTime); // use backend-provided endTime
+          const slotEnd = new Date(slotStart.getTime() + totalTime * 60000);
+          const shopClose = new Date(slotStart);
+          shopClose.setHours(20, 0, 0, 0);
 
           let available = slot.available;
-          let reason = slot.reason || "";
+          let reason = "";
 
-          // ------------------ Check Past ------------------
+          // Working logic (UNCHANGED)
           if (slotStart < now) {
             available = false;
             reason = "Time passed";
+          } else if (slotEnd > shopClose) {
+            available = false;
+            reason = "Exceeds closing time";
           } else if (!slot.available) {
             available = false;
             reason = slot.reason || "Booked";
@@ -59,10 +64,10 @@ export default function SlotPicker({ date, totalTime, selectedSlot, setSelectedS
 
           if (selectedSlot) {
             const selStart = new Date(selectedSlot.startTime);
-            const selEnd = new Date(selectedSlot.endTime);
+            const selEnd = new Date(selStart.getTime() + totalTime * 60000);
 
             const slotStart = new Date(slot.startTime);
-            const slotEnd = new Date(slot.endTime);
+            const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
 
             if (
               slotStart < selEnd &&
