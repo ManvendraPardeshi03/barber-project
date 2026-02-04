@@ -10,7 +10,10 @@ dotenv.config({ path: "./.env" });
 // console.log("MONGO_URI =", process.env.MONGO_URI);
 
 const app = express();
-app.use(cors()); // allow cross-origin requests
+app.use(cors({
+  origin: "*", // allow all domains (for testing)
+  credentials: true,
+}));
 app.use(express.json());
 
 // Serve uploaded images statically
