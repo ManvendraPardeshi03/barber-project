@@ -1,6 +1,7 @@
 // src/pages/Home.jsx
 import React from "react";
 import "./Home.css";
+import { getImageUrl } from "../utils/imageUrl";
 import { useNavigate } from "react-router-dom";
 import hero from "../assets/images/hero.jpg";
 import useServices from "../hooks/useServices";
@@ -74,7 +75,7 @@ export default function Home() {
                 style={{ cursor: "pointer" }}
               >
                 <img
-                  src={service.image ? `http://localhost:5000${service.image}` : haircut}
+                  src={service.image ? getImageUrl(service.image) : haircut}
                   alt={service.name}
                 />
                 <h3>{service.name}</h3>

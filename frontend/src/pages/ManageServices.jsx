@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import API from "../utils/api";
 import "./manageServices.css";
-
+import { getImageUrl } from "../utils/imageUrl";
 export default function ManageServices() {
   const [services, setServices] = useState([]);
   const [view, setView] = useState("active"); // active | inactive
@@ -220,7 +220,7 @@ const toggleActive = async (service) => {
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} />
           {newService.image && (
             <img
-              src={newService.image.startsWith("http") ? newService.image : `http://localhost:5000${newService.image}`}
+              src={newService.image ? getImageUrl(newService.image) : ""}
               alt="preview"
               className="preview-img"
             />
@@ -235,7 +235,7 @@ const toggleActive = async (service) => {
         {filteredServices.map((s) => (
           <div key={s._id} className={`card1 ${s.active === false ? "inactive" : ""}`}>
             <img
-              src={s.image ? (s.image.startsWith("http") ? s.image : `http://localhost:5000${s.image}`) : "/placeholder.jpg"}
+              src={s.image ? getImageUrl(s.image) : "/placeholder.jpg"}
               alt={s.name}
             />
             <h3>{s.name}</h3>

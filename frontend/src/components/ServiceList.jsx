@@ -1,6 +1,7 @@
 // src/components/ServiceList.jsx
 import React, { useEffect, useState } from "react";
 import API from "../utils/api";
+import { getImageUrl } from "../utils/imageUrl";
 
 export default function ServiceList({ selectedServices, setSelectedServices }) {
   const [services, setServices] = useState([]);
@@ -31,14 +32,14 @@ export default function ServiceList({ selectedServices, setSelectedServices }) {
         .map((service) => (
           <div key={service._id} className={`card ${selectedServices.some((s) => s._id === service._id) ? "selected" : ""}`} onClick={() => toggleService(service)}>
             <img
-              src={service.image ? `http://localhost:5000${service.image}` : "/placeholder.jpg"}
+              src={service.image ? getImageUrl(service.image) : "/placeholder.jpg"}
               alt={service.name}
               style={{
-                width: "100%",
-                height: "120px",
-                objectFit: "cover",
-                borderRadius: "6px",
-                marginBottom: "8px",
+                            width: "100%",
+                            height: "120px",
+                            objectFit: "cover",
+                            borderRadius: "6px",
+                            marginBottom: "8px",
               }}
             />
             <input type="checkbox" checked={selectedServices.some((s) => s._id === service._id)} readOnly />

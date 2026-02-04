@@ -1,6 +1,7 @@
 // src/pages/Services.jsx
 import React from "react";
 import "../App.css"; 
+import { getImageUrl } from "../utils/imageUrl";
 import { useNavigate } from "react-router-dom";
 import useServices from "../hooks/useServices";
 
@@ -27,7 +28,7 @@ export default function Services() {
               style={{ cursor: "pointer" }}
             >
               <img
-                src={service.image ? `http://localhost:5000${service.image}` : "/placeholder.jpg"}
+                src={service.image ? getImageUrl(service.image) : "/placeholder.jpg"}
                 alt={service.name}
                 style={{ width: "100%", height: "150px", objectFit: "cover", borderRadius: "6px" }}
               />
