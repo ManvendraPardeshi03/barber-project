@@ -6,13 +6,15 @@ const SHOP_START = 10 * 60; // 10:00
 const SHOP_END = 20 * 60;   // 20:00
 
 // ------------------ SLOT GENERATOR ------------------
-function generate30MinSlots(date) {
+function generate30MinSlots(date, totalTime = 30) {
   const slots = [];
+  const shopClose = new Date(`${date}T20:00:00`);
 
   for (let mins = SHOP_START; mins < SHOP_END; mins += 30) {
     const start = new Date(`${date}T00:00:00`);
     start.setHours(0, mins, 0, 0);
-    const end = new Date(start.getTime() + 30 * 60000);
+    const end = new Date(start.getTime() + totalTime * 60000);
+    if (end > shopClose) continue;
 
     const format = (d) =>
       d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -33,7 +35,7 @@ const getAvailableSlots = async (req, res) => {
     const { barberId, date, totalTime = 30 } = req.query;
     if (!barberId || !date) return res.status(400).json({ message: "Missing params" });
 
-    const allSlots = generate30MinSlots(date);
+    const allSlots = generate30MinSlots(date, parseInt(totalTime));
 
     // Fetch confirmed appointments
     const bookedAppointments = await Appointment.find({
@@ -44,22 +46,17 @@ const getAvailableSlots = async (req, res) => {
       informed: false 
     });
 
-    // Convert DB appointments to Date objects
     const normalizedBooked = bookedAppointments.map(app => ({
       startTime: new Date(app.startTime),
       endTime: new Date(app.endTime),
     }));
 
-    // Fetch all leaves for the date
     const leaves = await BarberLeave.find({ barberId, date });
-
     const now = new Date();
 
     const slotsWithStatus = allSlots.map((slot) => {
       const slotStart = slot.startTime;
-      const slotEnd = new Date(slotStart.getTime() + 30 * 60000); // dynamic slot end
-      const shopClose = new Date(slotStart);
-      shopClose.setHours(20, 0, 0, 0);
+      const slotEnd = slot.endTime;
 
       let available = true;
       let reason = "";
@@ -88,7 +85,9 @@ const getAvailableSlots = async (req, res) => {
       }
 
       // ------------------ Check Shop Close ------------------
-      if (available && slotEnd > shopClose) {
+      const shopClose = new Date(slotStart);
+      shopClose.setHours(20, 0, 0, 0);
+      if (slotEnd > shopClose) {
         available = false;
         reason = "Exceeds closing time";
       }
@@ -114,7 +113,6 @@ function roundUpToNextSlot(date, slotMinutes = 30) {
   return new Date(Math.ceil(date.getTime() / ms) * ms);
 }
 
-
 // ------------------ BOOK APPOINTMENT ------------------
 const bookAppointment = async (req, res) => {
   try {
@@ -128,10 +126,8 @@ const bookAppointment = async (req, res) => {
     const start = new Date(startTime);
     const rawEnd = new Date(start.getTime() + totalDuration * 60000);
     const end = roundUpToNextSlot(rawEnd, 30);
-    
 
     const bookingDate = start.toISOString().split("T")[0];
-
     const leaves = await BarberLeave.find({ barberId, date: bookingDate });
 
     const isBlockedByLeave = leaves.some((l) => {
@@ -177,12 +173,10 @@ const bookAppointment = async (req, res) => {
 // ------------------ GET MY APPOINTMENTS ------------------
 const getMyAppointments = async (req, res) => {
   try {
-    // Fetch all appointments for this barber, and populate services
     const appointments = await Appointment.find({ barberId: req.user._id })
-      .populate("services") // important: gives price, name etc
+      .populate("services")
       .sort({ startTime: -1 });
 
-    // Calculate revenue today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -197,13 +191,11 @@ const getMyAppointments = async (req, res) => {
         return sum + (a.services?.reduce((s, svc) => s + (svc.price || 0), 0) || 0);
       }, 0);
 
-    // Calculate total upcoming revenue
     const revenueUpcoming = appointments
       .reduce((sum, a) => {
         return sum + (a.services?.reduce((s, svc) => s + (svc.price || 0), 0) || 0);
       }, 0);
 
-    // Send everything
     res.json({
       appointments,
       revenueToday,
@@ -215,7 +207,6 @@ const getMyAppointments = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch appointments" });
   }
 };
-
 
 // ------------------ EXPORT ------------------
 module.exports = { getAvailableSlots, bookAppointment, getMyAppointments };
