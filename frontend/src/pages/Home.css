@@ -303,9 +303,20 @@
         grid-template-columns: 1fr;
     }
     }
+
+    /* NAVBAR FIX FOR "BOOK APPOINTMENT" */
+.navbar .nav-item,
+.navbar .nav-item a,
+.navbar .nav-item button {
+    white-space: nowrap; /* prevent breaking into two lines */
+}
 /* ================= MOBILE FIXES ================= */
 @media (max-width: 768px) {
-
+  .navbar .nav-item a,
+    .navbar .nav-item button {
+        font-size: 0.9rem;  /* slightly smaller text to fit */
+        padding: 6px 12px;  /* reduce horizontal padding */
+    }
   .hero {
     flex-direction: column;
     height: auto;
