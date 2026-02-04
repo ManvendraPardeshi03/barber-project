@@ -303,4 +303,58 @@
         grid-template-columns: 1fr;
     }
     }
+/* ================= MOBILE FIXES ================= */
+@media (max-width: 768px) {
+
+  /* HERO */
+  .hero-text h1 {
+    font-size: 2rem;
+  }
+
+  .hero-text p {
+    font-size: 1rem;
+  }
+
+  .btn-primary {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+
+  /* SERVICE CARDS */
+  .service-cards {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .service-card img {
+    height: 180px;
+  }
+
+  .service-card h3 {
+    font-size: 1.2rem;
+  }
+
+  .service-card p {
+    font-size: 0.95rem;
+  }
+
+  /* FEATURES */
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  /* TRUST SECTION */
+  .trust-section {
+    flex-direction: column;
+    padding: 50px 5%;
+    gap: 30px;
+  }
+
+  .trust-card {
+    padding: 30px 20px;
+  }
+
+}
+
 
