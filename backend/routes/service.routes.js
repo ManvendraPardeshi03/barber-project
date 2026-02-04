@@ -29,14 +29,14 @@ router.post("/seed", async (req, res) => {
     await Service.deleteMany();
 
     const services = await Service.insertMany([
-      { name: "Hair Cut", duration: 30, price: 80, image: "/uploads/haircut.jpg", active: true },
-      { name: "Beard Trim", duration: 20, price: 40, image: "/uploads/beardtrim.jpg", active: true },
-      { name: "Premium Grooming", duration: 90, price: 200, image: "/uploads/premiumgrooming.webp", active: true },
-      { name: "Clean Shave", duration: 15, price: 40, image: "/uploads/cleanshave.jpg", active: true },
-      { name: "Facial", duration: 30, price: 50, image: "/uploads/facial.jpg", active: true },
-      { name: "Hair Color", duration: 60, price: 60, image: "/uploads/haircolor.jpg", active: true },
-      { name: "Head Massage", duration: 15, price: 30, image: "/uploads/headmassage.jpg", active: true },
-      { name: "Kids Haircut", duration: 20, price: 50, image: "/uploads/kidshaircut.jpg", active: true },
+      { name: "Hair Cut", duration: 30, price: 80, image: "haircut.jpg", active: true },
+      { name: "Beard Trim", duration: 20, price: 40, image: "beardtrim.jpg", active: true },
+      { name: "Premium Grooming", duration: 90, price: 200, image: "premiumgrooming.webp", active: true },
+      { name: "Clean Shave", duration: 15, price: 40, image: "cleanshave.jpg", active: true },
+      { name: "Facial", duration: 30, price: 50, image: "facial.jpg", active: true },
+      { name: "Hair Color", duration: 60, price: 60, image: "haircolor.jpg", active: true },
+      { name: "Head Massage", duration: 15, price: 30, image: "headmassage.jpg", active: true },
+      { name: "Kids Haircut", duration: 20, price: 50, image: "kidshaircut.jpg", active: true },
     ]);
 
     res.json(services);
