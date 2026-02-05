@@ -1,5 +1,27 @@
 import React, { useEffect, useState, useRef } from "react";
 import API from "../utils/api";
+import { parseSlotUTCtoLocal } from "../utils/date";
+
+const normalizeServices = (services = []) => {
+  if (!Array.isArray(services)) return [];
+
+  return services.map((s) => {
+    // If backend already sends full service object
+    if (typeof s === "object" && s !== null) {
+      return {
+        name: s.name || "Unknown",
+        price: s.price || 0,
+      };
+    }
+
+    // If backend sends only service ID (history case)
+    return {
+      name: "Service",
+      price: 0,
+    };
+  });
+};
+
 
 // Simple Toast Component for Notifications
 const Toast = ({ message, onClose }) => (
@@ -49,39 +71,43 @@ export default function Appointments() {
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date();
   endOfToday.setHours(23, 59, 59, 999);
+const today = new Date().toISOString().split("T")[0]; // ✅ ADD THIS
 
   // ---------------- CLASSIFICATION ----------------
   const todayAppointments = appointments.filter((a) => {
-    const start = new Date(a.startTime);
+    const start = parseSlotUTCtoLocal(a.startTime);
     return start >= startOfToday && start <= endOfToday && a.status !== "cancelled" && a.status !== "completed" && a.informed !== true;
   });
 
   const completedToday = appointments
     .filter((a) => {
-      const end = new Date(a.endTime);
+      const end = parseSlotUTCtoLocal(a.endTime);
       return (
         end >= startOfToday &&
         end <= endOfToday &&
         a.status === "completed"
       );
     })
-    .sort((a, b) => new Date(a.endTime) - new Date(b.endTime));
+    .sort((a, b) => parseSlotUTCtoLocal(a.endTime) - parseSlotUTCtoLocal(b.endTime));
 
   const upcomingAppointments = appointments.filter((a) => {
-    const start = new Date(a.startTime);
+    const start = parseSlotUTCtoLocal(a.startTime);
     return start > now && a.status !== "cancelled" && a.status !== "completed" && a.informed !== true;
   });
 
   const historyAppointments = appointments
-    .filter((a) => (a.status === "completed" || a.status === "cancelled") && a.informed !== true)
-    .sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
+    .filter((a) => (a.status === "completed"))
+    .sort((a, b) => parseSlotUTCtoLocal(b.endTime) - parseSlotUTCtoLocal(a.endTime));
+
 
   // ---------------- SUMMARY / QUICK STATS ----------------
   const completedTodayCount = completedToday.length;
-  const completedTodayEarnings = completedToday.reduce(
-    (sum, a) => sum + (a.services?.reduce((s, svc) => s + (svc.price || 0), 0) || 0),
-    0
-  );
+  const completedTodayEarnings = completedToday.reduce((sum, a) => {
+  const services = normalizeServices(a.services);
+  const servicePrice = services.reduce((s, svc) => s + (svc.price || 0), 0);
+  return sum + servicePrice;
+}, 0);
+
 
   // const pendingTodayCount = todayAppointments.filter((a) => a.status === "pending").length;
   // const confirmedTodayCount = todayAppointments.filter((a) => a.status === "confirmed").length;
@@ -95,46 +121,59 @@ export default function Appointments() {
     return [];
   };
 
-  // ---------------- SEARCH/FILTER ----------------
-  let filteredAppointments = getActiveAppointments().filter((a) => {
-    if (!searchTerm) return true;
-    const nameMatch = a.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const phoneMatch = a.customerPhone?.includes(searchTerm);
-    return nameMatch || phoneMatch;
-  });
+// ---------------- SEARCH + FILTER + SORT ----------------
+let filteredAppointments = getActiveAppointments().filter((a) => {
+  if (!searchTerm) return true;
+  const nameMatch = a.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
+  const phoneMatch = a.customerPhone?.includes(searchTerm);
+  return nameMatch || phoneMatch;
+});
+
 
   // ---------------- SORTING ----------------
-  filteredAppointments = filteredAppointments.sort((a, b) => {
-      if (sortOption === "date") {
-      // HISTORY → latest first
-      if (activeTab === "history") {
-        return new Date(b.startTime) - new Date(a.startTime);
-      }
-      // TODAY & UPCOMING → earliest first
-      return new Date(a.startTime) - new Date(b.startTime);
-    }
-    if (sortOption === "name") return (a.customerName || "").localeCompare(b.customerName || "");
-    if (sortOption === "price") {
-      const priceA = a.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0;
-      const priceB = b.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0;
-      return priceB - priceA;
-    }
-    return 0;
-  });
+filteredAppointments = filteredAppointments.sort((a, b) => {
+  if (sortOption === "date") {
+    const startA = parseSlotUTCtoLocal(a.startTime);
+    const startB = parseSlotUTCtoLocal(b.startTime);
+
+    // History → latest first, others → earliest first
+    if (activeTab === "history") return startB - startA;
+    return startA - startB;
+  }
+
+  if (sortOption === "name") {
+    return (a.customerName || "").localeCompare(b.customerName || "");
+  }
+
+  if (sortOption === "price") {
+  const priceA = normalizeServices(a.services).reduce((sum, s) => sum + s.price, 0);
+  const priceB = normalizeServices(b.services).reduce((sum, s) => sum + s.price, 0);
+  return priceB - priceA;
+  }
+
+
+  return 0;
+});
+
 
   // ---------------- EXPORT FUNCTIONS ----------------
   const exportCSV = (appointmentsToExport, filename) => {
     if (appointmentsToExport.length === 0) return alert("No appointments to export.");
     const csvHeader = ["Customer Name", "Phone", "Date", "Time", "Services", "Price", "Status"];
-    const csvRows = appointmentsToExport.map((a) => [
-      a.customerName,
-      a.customerPhone,
-      new Date(a.startTime).toLocaleDateString(),
-      new Date(a.startTime).toLocaleTimeString(),
-      a.services?.map((s) => s.name).join(", ") || "None",
-      a.services?.reduce((sum, s) => sum + (s.price || 0), 0),
-      a.status,
-    ]);
+    const csvRows = appointmentsToExport.map((a) => {
+      const start = parseSlotUTCtoLocal(a.startTime);
+      const services = normalizeServices(a.services);
+      // const today = new Date().toISOString().split("T")[0];
+      return [
+        a.customerName,
+        a.customerPhone,
+        start.toISOString().split("T")[0],
+        `${start.toLocaleTimeString()} - ${parseSlotUTCtoLocal(a.endTime).toLocaleTimeString()}`,
+        services.map(s => s.name).join(", "),
+        services.reduce((sum, s) => sum + s.price, 0),
+        a.status,
+      ]
+     });
     const csvContent = [csvHeader, ...csvRows]
       .map((row) => row.map((field) => `"${field}"`).join(","))
       .join("\n");
@@ -147,14 +186,15 @@ export default function Appointments() {
     link.click();
   };
 
-  const exportTodayCSV = () => exportCSV(todayAppointments, `Appointments_Today_${new Date().toLocaleDateString()}.csv`);
-  const exportUpcomingCSV = () => exportCSV(upcomingAppointments, `Appointments_Upcoming_${new Date().toLocaleDateString()}.csv`);
-  const exportHistoryCSV = () => exportCSV(historyAppointments, `Appointment_History_${new Date().toLocaleDateString()}.csv`);
+const exportTodayCSV = () => exportCSV(todayAppointments, `Appointments_Today_${today}.csv`);
+const exportUpcomingCSV = () => exportCSV(upcomingAppointments, `Appointments_Upcoming_${today}.csv`);
+const exportHistoryCSV = () => exportCSV(historyAppointments, `Appointment_History_${today}.csv`);
+
 
   // ---------------- HISTORY GROUPING (MONTH-WISE) ----------------
   const groupHistoryByMonth = (list) => {
     return list.reduce((acc, a) => {
-      const date = new Date(a.startTime);
+      const date = parseSlotUTCtoLocal(a.startTime);
       const key = `${date.getFullYear()}-${date.getMonth()}`;
       if (!acc[key]) {
         acc[key] = {
@@ -164,7 +204,9 @@ export default function Appointments() {
         };
       }
       acc[key].appointments.push(a);
-      acc[key].totalEarnings += a.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0;
+      const services = normalizeServices(a.services);
+      const servicePrice = services.reduce((sum, s) => sum + s.price, 0);
+      acc[key].totalEarnings += servicePrice;
       return acc;
     }, {});
   };
@@ -173,7 +215,7 @@ export default function Appointments() {
 useEffect(() => {
   const checkUpcomingAppointments = () => {
     upcomingAppointments.forEach((a) => {
-      const start = new Date(a.startTime);
+      const start = parseSlotUTCtoLocal(a.startTime);
       const diffMins = (start - new Date()) / (1000 * 60);
 
       // ⏰ 15 minute reminder
@@ -271,14 +313,17 @@ useEffect(() => {
         <div className="completed-summary">
           <h3>Completed Today ({completedTodayCount})</h3>
           <p>Total Earnings: ₹{completedTodayEarnings}</p>
-          {completedToday.map((a) => (
-            <div key={a._id} className="appointment-card completed">
-              <p>
-                <strong>{a.customerName}</strong> - Completed
-              </p>
-              <p>Time: {new Date(a.endTime).toLocaleTimeString()}</p>
-            </div>
-          ))}
+          {completedToday.map((a) => {
+            const end = parseSlotUTCtoLocal(a.endTime);
+            return (
+              <div key={a._id} className="appointment-card completed">
+                <p>
+                  <strong>{a.customerName}</strong> - Completed
+                </p>
+                <p>Time: {end.toLocaleTimeString()}</p>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -293,18 +338,21 @@ useEffect(() => {
               Total Appointments: {month.appointments.length} | Total Earnings: ₹{month.totalEarnings}
             </p>
             {month.appointments.map((a) => {
-              const start = new Date(a.startTime);
-              const end = roundUpToNext30Min(new Date(a.endTime));
+              const start = parseSlotUTCtoLocal(a.startTime);
+              const end = parseSlotUTCtoLocal(a.endTime);
+              const services = normalizeServices(a.services);
+              const servicePrice = services.reduce((sum, s) => sum + (s.price || 0), 0);
               return (
                 <div key={a._id} className="appointment-card history">
                   <p><strong>Name:</strong> {a.customerName}</p>
                   <p><strong>Phone:</strong> {a.customerPhone}</p>
                   <p>
-                    <strong>Date & Time:</strong> {start.toLocaleDateString()} | {start.toLocaleTimeString()} - {roundUpToNext30Min(new Date(a.endTime)).toLocaleTimeString()}
+                    <strong>Date & Time:</strong> {start.toLocaleDateString()} | {start.toLocaleTimeString()} - {end.toLocaleTimeString()}
                   </p>
+
                   <p><strong>Status:</strong> {a.status}</p>
-                  <p><strong>Services:</strong> {a.services?.map((s) => s.name).join(", ") || "None"}</p>
-                  <p><strong>Price:</strong> ₹{a.services?.reduce((sum, s) => sum + (s.price || 0), 0)}</p>
+                  <p><strong>Services:</strong> {services.map(s => s.name).join(", ")}</p>
+                  <p><strong>Price:</strong> ₹{servicePrice}</p>
                 </div>
               );
             })}
@@ -312,8 +360,11 @@ useEffect(() => {
         ))
       ) : (
         filteredAppointments.map((a) => {
-          const start = roundUpToNext30Min(new Date(a.startTime));
-          const end = roundUpToNext30Min(new Date(a.endTime));
+          const start = roundUpToNext30Min(parseSlotUTCtoLocal(a.startTime));
+          const end = parseSlotUTCtoLocal(a.endTime);
+          const endTime = parseSlotUTCtoLocal(a.endTime);
+          const services = normalizeServices(a.services);
+          const servicePrice = services.reduce((sum, s) => sum + (s.price || 0), 0);
           return (
             <div key={a._id} className="appointment-card">
               <p><strong>Name:</strong> {a.customerName}</p>
@@ -322,16 +373,16 @@ useEffect(() => {
                 <strong>Date:</strong> {start.toLocaleDateString()} <strong>Time:</strong> {start.toLocaleTimeString()} - {end.toLocaleTimeString()}
               </p>
               <p><strong>Status:</strong> {a.status}</p>
-              <p><strong>Services:</strong> {a.services?.map((s) => s.name).join(", ") || "None"}</p>
-              <p><strong>Price:</strong> ₹{a.services?.reduce((sum, s) => sum + (s.price || 0), 0)}</p>
+              <p><strong>Services:</strong> {services.map(s => s.name).join(", ") || "None"}</p>
+              <p><strong>Price:</strong> ₹{servicePrice}</p>
               {activeTab !== "history" && a.status !== "cancelled" && a.status !== "completed" && (
                 <div className="appointment-actions">
                   <button
                     onClick={() => handleStatusChange(a._id, "completed")}
-                    disabled={new Date(a.endTime) > now} // disable future appointments
+                    disabled={endTime > now} // Use parsed local time
                     title={
-                      new Date(a.endTime) > now
-                        ? `Can mark as completed after ${new Date(a.endTime).toLocaleTimeString()}`
+                      endTime > now
+                        ? `Can mark as completed after ${endTime.toLocaleTimeString()}`
                         : "Mark as completed"
                     }
                   >

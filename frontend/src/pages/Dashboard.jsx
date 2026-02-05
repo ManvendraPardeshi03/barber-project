@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import API from "../utils/api";
 import { useNavigate } from "react-router-dom";
+import { parseSlotUTCtoLocal } from "../utils/date";
+
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -39,7 +41,7 @@ export default function Dashboard() {
         setNextAppointmentCountdown("No upcoming appointments");
         return;
       }
-      const nextAppt = new Date(upcoming[0].startTime);
+      const nextAppt = parseSlotUTCtoLocal(upcoming[0].startTime);
       const now = new Date();
       const diffMs = nextAppt - now;
       if (diffMs <= 0) {
@@ -65,7 +67,7 @@ export default function Dashboard() {
 
     const revenueTodayCalc = data.appointments.upcoming
   .filter(a => {
-    const start = new Date(a.startTime);
+    const start = parseSlotUTCtoLocal(a.startTime);
     return start.getFullYear() === today.getFullYear() &&
            start.getMonth() === today.getMonth() &&
            start.getDate() === today.getDate();
@@ -98,9 +100,9 @@ export default function Dashboard() {
   // ------------------------------
   // Conflicted appointments (on leave days and NOT yet informed)
   const conflictedAppointments = data.appointments.upcoming.filter(a => {
-    const apptDate = new Date(a.startTime).toDateString();
+    const apptDate = parseSlotUTCtoLocal(a.startTime).toDateString();
     return data.leaves.allLeaves?.some(
-      l => new Date(l.date).toDateString() === apptDate
+      l => parseSlotUTCtoLocal(l.date).toDateString() === apptDate.toDateString()
     ) && !a.informed;
   });
 
@@ -193,12 +195,12 @@ export default function Dashboard() {
             ⚠️ Appointments on Leave Days
           </h3>
           {conflictedAppointments.map(a => {
-            const apptDate = new Date(a.startTime);
+            const apptDate = parseSlotUTCtoLocal(a.startTime);
             return (
               <div key={a._id} className="appointment-card" style={{ border: "1px solid red", padding: "10px", marginBottom: "10px" }}>
                 <p><strong>Name:</strong> {a.customerName}</p>
                 <p><strong>Phone:</strong> {a.customerPhone}</p>
-                <p><strong>Date:</strong> {apptDate.toLocaleDateString()} , <strong>Time:</strong> {apptDate.toLocaleTimeString()}</p>
+                <p><strong>Date:</strong> {apptDate.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })} , <strong>Time:</strong> {apptDate.toLocaleTimeString()}</p>
                 <p><strong>Services:</strong> {a.services?.map(s => s.name).join(", ")}</p>
                 <p><strong>Price:</strong> ₹{a.services?.reduce((sum, s) => sum + (s.price || 0), 0)}</p>
 
@@ -224,12 +226,12 @@ export default function Dashboard() {
         <p>No upcoming appointments</p>
       ) : (
         normalAppointments.map(a => {
-          const apptDate = new Date(a.startTime);
+          const apptDate = parseSlotUTCtoLocal(a.startTime);
           return (
             <div key={a._id} className="appointment-card">
               <p><strong>Name:</strong> {a.customerName}</p>
               <p><strong>Phone:</strong> {a.customerPhone}</p>
-              <p><strong>Date:</strong> {apptDate.toLocaleDateString()} , <strong>Time:</strong> {apptDate.toLocaleTimeString()}</p>
+              <p><strong>Date:</strong> {apptDate.toLocaleDateString()} , <strong>Time:</strong> {apptDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
               <p><strong>Services:</strong> {a.services?.map(s => s.name).join(", ") || "None selected"}</p>
               <p><strong>Price:</strong> ₹{a.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0}</p>
             </div>

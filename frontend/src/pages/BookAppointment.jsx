@@ -4,6 +4,7 @@ import SlotPicker from "../components/SlotPicker";
 import API from "../utils/api";
 import useServices from "../hooks/useServices";
 import { useLocation } from "react-router-dom";
+import { parseSlotUTCtoLocal } from "../utils/date";
 
 export default function BookAppointment() {
   const location = useLocation();
@@ -65,8 +66,9 @@ export default function BookAppointment() {
     if (!selectedSlot) newErrors.slot = "Please select a time slot";
     else {
       const now = new Date();
-      const slotStart = new Date(selectedSlot.startTime);
-      const slotEnd = new Date(slotStart.getTime() + totalTime * 60000);
+      const slotStart = parseSlotUTCtoLocal(selectedSlot.startTime);
+const slotEnd = new Date(slotStart.getTime() + totalTime * 60000);
+
       const shopClose = new Date(slotStart);
       shopClose.setHours(20, 0, 0, 0);
 
@@ -106,7 +108,7 @@ const parseSlotTime = (time) => {
 const getSlotRangeLabel = (slot, totalTime, slotDuration = 30) => {
   if (!slot) return "";
 
-  const start = parseSlotTime(slot.startTime);
+  const start = parseSlotUTCtoLocal(slot.startTime);
   if (!start) return "Invalid Date";
 
   const slotsNeeded = Math.ceil(totalTime / slotDuration);
@@ -125,14 +127,14 @@ const getSlotRangeLabel = (slot, totalTime, slotDuration = 30) => {
 
     setStatus("");
     try {
-      const startTime = new Date(selectedSlot.startTime);
+      const startTimeUTC = new Date(selectedSlot.startTime).toISOString();
 
       await API.post("/appointments/book-public", {
         name,
         phone,
         barberId: SINGLE_BARBER_ID,
         services: selectedServices.map((s) => s._id),
-        startTime,
+        startTime: startTimeUTC,
       });
 
       setBookingConfirmed(true);

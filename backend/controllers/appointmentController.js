@@ -11,7 +11,9 @@ function generate30MinSlots(date) {
 
   for (let mins = SHOP_START; mins < SHOP_END; mins += 30) {
     const start = new Date(`${date}T00:00:00`);
-    start.setHours(0, mins, 0, 0);
+    const hours = Math.floor(mins / 60);
+const minutes = mins % 60;
+start.setHours(hours, minutes, 0, 0);
     const end = new Date(start.getTime() + 30 * 60000);
 
     const format = (d) =>
@@ -178,7 +180,7 @@ const bookAppointment = async (req, res) => {
 const getMyAppointments = async (req, res) => {
   try {
     // Fetch all appointments for this barber, and populate services
-    const appointments = await Appointment.find({ barberId: req.user._id })
+    const appointments = await Appointment.find({ barberId: req.user._id, status: "completed"   })
       .populate("services") // important: gives price, name etc
       .sort({ startTime: -1 });
 

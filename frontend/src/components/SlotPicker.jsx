@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { parseSlotUTCtoLocal } from "../utils/date";
+
 import API from "../utils/api";
 
 export default function SlotPicker({ date, totalTime, selectedSlot, setSelectedSlot }) {
@@ -23,10 +25,13 @@ export default function SlotPicker({ date, totalTime, selectedSlot, setSelectedS
         const now = new Date();
 
         const updatedSlots = res.data.slots.map((slot) => {
-          const slotStart = new Date(slot.startTime);
-          const slotEnd = new Date(slotStart.getTime() + totalTime * 60000);
+          const slotStart = parseSlotUTCtoLocal(slot.startTime);
+          // const slotDuration = slot.duration || 30; // use real slot duration
+          // const slotEnd = new Date(slotStart.getTime() + slotDuration * 60000);
+          const slotEnd = new Date(slotStart.getTime() + totalTime * 60000); // totalTime here
           const shopClose = new Date(slotStart);
-          shopClose.setHours(20, 0, 0, 0);
+          shopClose.setHours(20, 0, 0, 0); // 8 PM local time
+
 
           let available = slot.available;
           let reason = "";
@@ -63,21 +68,25 @@ export default function SlotPicker({ date, totalTime, selectedSlot, setSelectedS
           let isPartiallyReserved = false;
 
           if (selectedSlot) {
-            const selStart = new Date(selectedSlot.startTime);
+            const selStart = parseSlotUTCtoLocal(selectedSlot.startTime);
             const selEnd = new Date(selStart.getTime() + totalTime * 60000);
 
-            const slotStart = new Date(slot.startTime);
-            const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
+            const slotStart = parseSlotUTCtoLocal(slot.startTime);
+            const slotDuration = slot.duration || 30; // use real slot duration
+            const slotEnd = new Date(slotStart.getTime() + slotDuration * 60000);
 
+            // Only mark as partial if slot overlaps **inside** selected slot range
             if (
+              slot.reason !== "Booked" &&
+              slot.startTime !== selectedSlot.startTime &&
               slotStart < selEnd &&
               slotEnd > selStart &&
               slot.startTime !== selectedSlot.startTime
             ) {
               isPartiallyReserved = true;
             }
-          }
 
+          }
           return (
             <button
               key={slot.startTime}

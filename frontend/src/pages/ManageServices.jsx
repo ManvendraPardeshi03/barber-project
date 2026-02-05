@@ -3,6 +3,8 @@ import React, { useEffect, useState, useRef } from "react";
 import API from "../utils/api";
 import "./manageServices.css";
 import { getImageUrl } from "../utils/imageUrl";
+
+
 export default function ManageServices() {
   const [services, setServices] = useState([]);
   const [view, setView] = useState("active"); // active | inactive
