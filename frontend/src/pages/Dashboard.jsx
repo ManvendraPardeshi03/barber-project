@@ -3,9 +3,11 @@ import API from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import { parseSlotUTCtoLocal } from "../utils/date";
 
-
 export default function Dashboard() {
   const navigate = useNavigate();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [nextAppointmentCountdown, setNextAppointmentCountdown] = useState("");
@@ -35,23 +37,32 @@ export default function Dashboard() {
   // Countdown for next appointment
   useEffect(() => {
     if (!data) return;
+
     const updateCountdown = () => {
-      const upcoming = data.appointments.upcoming;
+      const now = Date.now();
+      const upcoming = data.appointments.upcoming
+        .map(a => ({ ...a, start: parseSlotUTCtoLocal(a.startTime) }))
+        .filter(a => a.start.getTime() > now)
+        .sort((a, b) => a.start - b.start);
+
       if (!upcoming || upcoming.length === 0) {
         setNextAppointmentCountdown("No upcoming appointments");
         return;
       }
-      const nextAppt = parseSlotUTCtoLocal(upcoming[0].startTime);
-      const now = new Date();
+
+      const nextAppt = upcoming[0].start;
       const diffMs = nextAppt - now;
+
       if (diffMs <= 0) {
         setNextAppointmentCountdown("Next appointment is now or passed");
         return;
       }
+
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
       setNextAppointmentCountdown(`${hours}h ${minutes}m until next appointment`);
     };
+
     updateCountdown();
     const interval = setInterval(updateCountdown, 60000);
     return () => clearInterval(interval);
@@ -60,29 +71,26 @@ export default function Dashboard() {
   // Revenue calculations
   useEffect(() => {
     if (!data) return;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+    const now = new Date();
 
+    // Revenue today
     const revenueTodayCalc = data.appointments.upcoming
-  .filter(a => {
-    const start = parseSlotUTCtoLocal(a.startTime);
-    return start.getFullYear() === today.getFullYear() &&
-           start.getMonth() === today.getMonth() &&
-           start.getDate() === today.getDate();
-  })
-  .reduce((sum, a) => {
-    const serviceSum = a.services?.reduce((s, svc) => s + Number(svc.price || 0), 0) || 0;
-    return sum + serviceSum;
-  }, 0);
+      .filter(a => {
+        const start = parseSlotUTCtoLocal(a.startTime);
+        return start > now && start.toDateString() === now.toDateString();
+      })
+      .reduce((sum, a) => {
+        const serviceSum = a.services?.reduce((s, svc) => s + Number(svc.price || 0), 0) || 0;
+        return sum + serviceSum;
+      }, 0);
 
-
-    const revenueUpcomingCalc = data.appointments.upcoming.reduce((sum, a) => {
-  const serviceSum = a.services?.reduce((s, svc) => s + Number(svc.price || 0), 0) || 0;
-  return sum + serviceSum;
-}, 0);
-
+    // Revenue upcoming (future only)
+    const revenueUpcomingCalc = data.appointments.upcoming
+      .filter(a => parseSlotUTCtoLocal(a.startTime).getTime() > now.getTime())
+      .reduce((sum, a) => {
+        const serviceSum = a.services?.reduce((s, svc) => s + Number(svc.price || 0), 0) || 0;
+        return sum + serviceSum;
+      }, 0);
 
     setRevenueToday(revenueTodayCalc);
     setRevenueUpcoming(revenueUpcomingCalc);
@@ -91,17 +99,23 @@ export default function Dashboard() {
   if (loading) return <p>Loading dashboard...</p>;
   if (!data) return <p>Failed to load dashboard</p>;
 
-  const totalServicesCount = data.appointments.upcoming.reduce((sum, a) => sum + (a.services?.length || 0), 0);
-  const today = new Date();
+  const now = Date.now();
+  const totalServicesCount = data.appointments.upcoming
+    .filter(a => parseSlotUTCtoLocal(a.startTime).getTime() > now)
+    .reduce((sum, a) => sum + (a.services?.length || 0), 0);
+
   const todayDay = today.getDay(); // 4 = Thursday
   const isStoreClosedToday = todayDay === 4 || data.leaves.onLeaveToday;
   const isBarberOnLeaveToday = data.leaves.onLeaveToday;
 
-  // ------------------------------
   // Conflicted appointments (on leave days and NOT yet informed)
-const conflictedAppointments = data.appointments.upcoming.filter(a => {
-  const apptDate = parseSlotUTCtoLocal(a.startTime).toDateString();
+  const conflictedAppointments = data.appointments.upcoming.filter(a => {
+  const start = parseSlotUTCtoLocal(a.startTime);
 
+  // Only future appointments
+  if (start.getTime() <= now) return false;
+
+  const apptDate = start.toDateString();
   return data.leaves.allLeaves?.some(l => {
     const leaveDate = parseSlotUTCtoLocal(l.date).toDateString();
     return leaveDate === apptDate;
@@ -110,30 +124,26 @@ const conflictedAppointments = data.appointments.upcoming.filter(a => {
 
 
   // Normal upcoming appointments (exclude conflicted/informed)
-  const normalAppointments = data.appointments.upcoming.filter(
-    a => !conflictedAppointments.includes(a)
-  );
+  const normalAppointments = data.appointments.upcoming.filter(a => {
+    const start = parseSlotUTCtoLocal(a.startTime);
+    return start.getTime() > now && !conflictedAppointments.some(c => c._id === a._id);
+  });
 
-  // ------------------------------
-      // Mark appointment as informed
-      const markInformed = async (appointmentId) => {
-      try {
-        await API.put(`/barber/appointments/${appointmentId}/inform`);
-
-        // 🔥 REMOVE appointment from dashboard upcoming immediately
-        setData(prev => ({
-          ...prev,
-          appointments: {
-            ...prev.appointments,
-            upcoming: prev.appointments.upcoming.filter(
-              a => a._id !== appointmentId
-            )
-          }
-        }));
-      } catch (err) {
-        console.error("Failed to mark informed:", err);
-      }
-    };
+  // Mark appointment as informed
+  const markInformed = async (appointmentId) => {
+    try {
+      await API.put(`/barber/appointments/${appointmentId}/inform`);
+      setData(prev => ({
+        ...prev,
+        appointments: {
+          ...prev.appointments,
+          upcoming: prev.appointments.upcoming.filter(a => a._id !== appointmentId)
+        }
+      }));
+    } catch (err) {
+      console.error("Failed to mark informed:", err);
+    }
+  };
 
   return (
     <div className="page-container">
