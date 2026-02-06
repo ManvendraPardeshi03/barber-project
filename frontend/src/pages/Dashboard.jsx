@@ -99,12 +99,15 @@ export default function Dashboard() {
 
   // ------------------------------
   // Conflicted appointments (on leave days and NOT yet informed)
-  const conflictedAppointments = data.appointments.upcoming.filter(a => {
-    const apptDate = parseSlotUTCtoLocal(a.startTime).toDateString();
-    return data.leaves.allLeaves?.some(
-      l => parseSlotUTCtoLocal(l.date).toDateString() === apptDate.toDateString()
-    ) && !a.informed;
-  });
+const conflictedAppointments = data.appointments.upcoming.filter(a => {
+  const apptDate = parseSlotUTCtoLocal(a.startTime).toDateString();
+
+  return data.leaves.allLeaves?.some(l => {
+    const leaveDate = parseSlotUTCtoLocal(l.date).toDateString();
+    return leaveDate === apptDate;
+  }) && !a.informed;
+});
+
 
   // Normal upcoming appointments (exclude conflicted/informed)
   const normalAppointments = data.appointments.upcoming.filter(
