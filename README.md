@@ -28,13 +28,13 @@ It allows customers to book barber appointments seamlessly while enabling barber
 
 ## 🧰 Tech Stack
 
-MongoDB – Database
-Express.js – Backend framework
-React.js – Frontend library
-Node.js – Backend runtime
-Docker – Containerization
-REST API – Backend communication
-CSV Export – Appointment history download
+- MongoDB – Database
+- Express.js – Backend framework
+- React.js – Frontend library
+- Node.js – Backend runtime
+- Docker – Containerization
+- REST API – Backend communication
+- CSV Export – Appointment history download
 
 ---
 
@@ -90,12 +90,12 @@ Barber Project
 
 ## 📌 Example Workflow
 
-Customer Side
+# Customer Side
   1. Browse services  
   2. Select date and available time slot  
   3. Confirm booking  
   4. Appointment stored in MongoDB
-Barber Side
+# Barber Side
   1. Login via footer
        (EXAMPLE EMAIL: test@example.com, EXAMPLE PASS: 123456)
   2. View appointments in dashboard 
@@ -103,5 +103,3 @@ Barber Side
   4. Track monthly performance  
   5. Download CSV history  
   6. Add leave to block availability
-
----
