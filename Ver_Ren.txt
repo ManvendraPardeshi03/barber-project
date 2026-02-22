@@ -6,6 +6,5 @@
         Backend API Base:
         https://barber-backend-tmig.onrender.com/api
     🧠 Database : MongoDB Atlas
-        https://cloud.mongodb.com/v2/6973624f015e6356ae2fe793#/explorer/697365945a9025dce5030d53
     🐳 Local Dev: Docker
 
