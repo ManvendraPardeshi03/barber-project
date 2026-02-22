@@ -6,15 +6,15 @@ It allows customers to book barber appointments seamlessly while enabling barber
 
 ---
 
-## 🚀 Features
+# 🚀 Features
 
-# 👤 Customer Features
+## 👤 Customer Features
 - 📅 Select date and time slots
 - 💈 Browse available services
 - ✅ Book appointments instantly
 - 📱 Responsive and user-friendly interface
 
-# 💼 Barber Dashboard
+## 💼 Barber Dashboard
 - 🔐 Secure barber login (accessible via footer)
 - 📊 View all booked appointments
 - 🛠️ Manage services (Create, Read, Update, Delete)
@@ -90,12 +90,12 @@ Barber Project
 
 ## 📌 Example Workflow
 
-# Customer Side
+## Customer Side
   1. Browse services  
   2. Select date and available time slot  
   3. Confirm booking  
   4. Appointment stored in MongoDB
-# Barber Side
+## Barber Side
   1. Login via footer
        (EXAMPLE EMAIL: test@example.com, EXAMPLE PASS: 123456)
   2. View appointments in dashboard 
