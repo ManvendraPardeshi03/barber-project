@@ -26,7 +26,7 @@ It allows customers to book barber appointments seamlessly while enabling barber
 
 ---
 
-## 🧰 Tech Stack
+# 🧰 Tech Stack
 
 - MongoDB – Database
 - Express.js – Backend framework
@@ -38,7 +38,7 @@ It allows customers to book barber appointments seamlessly while enabling barber
 
 ---
 
-## 💻 How to Run the Website Locally
+# 💻 How to Run the Website Locally
 
 1. **Clone the repository**
 ```bash
@@ -60,7 +60,7 @@ http://localhost:5000/
 
 ---
 
-## 🔐 Environment Setup
+# 🔐 Environment Setup
 Create a .env file inside the backend folder:
 ```bash
 MONGO_URI=your_mongodb_connection_string
@@ -69,7 +69,7 @@ PORT=5000
 
 ---
 
-## 📁 Project Structure
+# 📁 Project Structure
 ```bash
 Barber Project
 ├── backend
@@ -88,7 +88,7 @@ Barber Project
 
 ---
 
-## 📌 Example Workflow
+# 📌 Example Workflow
 
 ## Customer Side
   1. Browse services  
